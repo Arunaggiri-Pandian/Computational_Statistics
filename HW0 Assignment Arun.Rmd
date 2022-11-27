@@ -1,0 +1,369 @@
+---
+title: "DSCC/CSC/TCS 462 Assignment 0"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+subtitle: Due Thursday, September 8, 2022 by 3:59 p.m.
+fontsize: 12pt
+---
+```{r, echo=FALSE}
+knitr::opts_chunk$set(error = TRUE)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T,tidy=TRUE, tidy.opts=list(width.cutoff=
+                                                                   60))
+```
+  
+This assignment will cover material from Lectures 1 and 2. You are expected to 
+use the `ggplot2` library in `R` for completing all the graphics. To learn more 
+about graphics using `ggplot2`, please read through the guide available here:   http://www.cookbook-r.com/Graphs/. This is a wonderful open source textbook that
+walks through examples of many different graphics in `ggplot2`. If you have not
+done so already, start by installing the library. In the R console (i.e. NOT in
+your .RMD file), run the code `install.packages("ggplot2")`. Then, in your .RMD
+file, load the library as follows:
+```{r, echo=T}
+library(ggplot2)
+```
+
+For this first assignment, we will use the "car_sales.csv" dataset, which
+includes information about 152 different cars. In particular, we will mainly
+focus on the selling price of cars throughout this assignment.
+
+
+1. Getting familiar with the dataset via exploratory data analysis. 
+    a. Read the data into RStudio and summarize the data with the `summary()` 
+    function. 
+```{r, echo=T, warning=FALSE}
+library(ggplot2)
+car_sales <- read.csv("car_sales.csv", header=TRUE, sep = ",")
+summary(car_sales)
+```    
+    
+    b. How many bins does Sturges' formula suggest we use for a histogram of 
+    `price`? Show your work. 
+```{r, echo=T, warning=FALSE}
+n = length(car_sales$price) # number of rows in price column
+n_bins = ceiling((log2(n)) + 1)
+paste("Number of bins = ", n_bins, ", as per Sturge's formula")
+```      
+    c. Create a histogram of `price` using the number of bins suggested by 
+    Sturges' formula in 1b. Make sure to appropriately title the histogram and 
+    label the axes. Comment on the center, shape, and spread. 
+```{r, echo=T, warning=FALSE}
+# Histogram
+ggplot(car_sales, aes(x=price)) + geom_histogram(color="black", fill="white",
+                    bins = n_bins) + ggtitle("Histogram of Car Prices Data") + 
+ labs(x="Price", y="Frequency") +  theme(plot.title = element_text(hjust = 0.5))
+# Comment on center, shape and spread
+# It is a unimodal right skewed distribution, and is asymmetrical.
+```   
+
+    
+2. Measures of center and spread for the selling price of cars.
+    a. Calculate the mean, median, and 10\% trimmed mean of the selling price. 
+    Report the mean, median, and 10\% trimmed mean on the histogram. 
+    In particular, create a red vertical line on the histogram at the mean, 
+    and report the value of the mean in red next to the line using the form 
+    "$\bar{x}=$". Create a blue vertical line on the histogram at the median,
+    and report the value of the median in blue next to the line using the form 
+    "$\tilde{x}=$". Create a green vertical line on the histogram at the 10\% 
+    trimmed mean, and report the value of the 10\% trimmed mean in green next 
+    to the line using the form "$\bar{x}_{10}=$" (to get $\bar{x}_{10}$ to 
+    print on the plot, use `bar(x)[10]` within the `paste()` function). 
+```{r, echo=T, warning=FALSE}
+price = car_sales$price 
+mean_value = mean(price)
+med_val = median(price)
+trimmed_mean = mean(price, trim = 0.1)
+ggplot(car_sales, aes(x=price)) + geom_histogram(color="black", fill="white",
+       bins = n_bins) + ggtitle("Histogram of Car Prices Data") + 
+  geom_vline(xintercept = mean_value, col = "red") +
+  annotate("text", x=mean_value + 6200, y=60,
+           label = substitute(paste(bar(x), " = ", m),
+                              list(m=mean_value)), col="red")+
+  geom_vline(xintercept = med_val, col = "blue") +
+  annotate("text", x=med_val + 5000, y=50,
+           label = substitute(paste(tilde(x), " = ", m),
+                              list(m=med_val)), col="blue")+
+  geom_vline(xintercept = trimmed_mean, col = "green") +
+  annotate("text", x=trimmed_mean + 7000, y=40,
+           label = substitute(paste(bar(x)[10], " = ", m),
+                              list(m=trimmed_mean)), col="green") + 
+          labs(x="Car Prices", y="Frequency") +
+  theme(plot.title = element_text(hjust = 0.5))
+```         
+    
+    b. Calculate and report the 25th and 75th percentiles. 
+```{r, echo=T, warning=FALSE}
+q1 = unname(quantile(price, 0.25)) 
+q3 = unname(quantile(price, 0.75))
+paste("25th percentile is", q1, "and 75th percentile is", q3)
+```         
+    c. Calculate and report the interquartile range. 
+```{r, echo=T, warning=FALSE}
+iqr = IQR(price)
+paste("Interquartile Range is", iqr)
+first_quartile = quantile(price, 0.25)
+third_quartile = quantile(price, 0.75)
+```         
+    d. Calculate and report the standard span, the lower fence, and the upper 
+    fence.
+    ```{r, echo=T, warning=FALSE}
+Standard_Span = 1.5*iqr
+lower_fence = unname(first_quartile - Standard_Span)
+upper_fence = unname(third_quartile + Standard_Span)
+
+paste("Standard Span is", Standard_Span)
+paste("Lower Fence is", lower_fence, "and Upper Fence is", upper_fence)
+```       
+    e. Are there any outliers? Subset the outlying points. Use code based on 
+    the following:
+    ```{r echo=T}
+    car_sales[car_sales$price >= upper_fence, ] #upper outliers
+    car_sales[car_sales$price <= lower_fence, ] #lower outliers 
+    # Use upper and lower fence values from part g.
+    car_sales[car_sales$price >= upper_fence, ] -> upper_outliers
+    car_sales[car_sales$price >= lower_fence, ] -> lower_outliers
+    ```
+    
+    f. Calculate and report the variance, standard deviation, and coefficient 
+    of variation of car prices. 
+```{r, echo=T, warning=FALSE}
+variance.value = var(car_sales$price)
+sd.value = sd(car_sales$price)
+coeff.variation = sd.value / mean_value
+
+paste("Variance is", variance.value)
+paste("Standard Deviation is", sd.value)
+paste("Coefficient of Variation is", coeff.variation)
+```        
+    g. We have seen from the histogram that the data are skewed. Calculate and
+    report the skewness. Comment on this value and how it matches with what you
+    visually see in the histogram. 
+    ```{r, echo=T, warning=FALSE}
+install.packages("moments")
+library("moments") # used moments library to calculate skewness
+paste("Skewness is",skewness(price))
+# comment
+# Since the skewness is positive, it indicates that our distribution is right
+# skewed (positive skew)
+``` 
+3. Transforming the data.
+    a. Use a Box-Cox power transformation to appropriately transform the data. 
+    In particular, use the `boxcox()` function in the `MASS` library. Report 
+    the recommended transformation. Do not apply this transformation to the data
+    yet. (Note: the `boxcox` function automatically produces a plot. You do NOT 
+    need to make this in `ggplot2`.)
+```{r, echo=T, warning=FALSE}
+library('MASS')
+bc.plot = boxcox(car_sales$price~1)
+```         
+    b. Apply the exact Box-Cox recommended transformation (rounded to four 
+    decimal places) to the data (this transformation is hereon referred to as 
+    the Box-Cox transformed data). Use the `summary()` function to summarize the results of this transformation. 
+```{r, echo=T, warning=FALSE}
+lambda = bc.plot$x[bc.plot$y==max(bc.plot$y)] 
+transformed_data = (car_sales$price ^ round(lambda, 4) - 1) / round(lambda, 4)
+print("Summary of BoxCox Transformed Data")
+summary(transformed_data)
+
+```         
+    c. Create a histogram of the Box-Cox transformed data using the number of 
+    bins suggested by Sturges' formula. On this histogram, report the mean, 
+    median, and 10\% trimmed mean using the same formatting options as in part 
+    2a above. Comment on the center, shape, and spread. 
+```{r, echo=T, warning=FALSE}
+    
+td.mean_value = mean(transformed_data)
+td.med_val = median(transformed_data)
+td.trimmed_mean = mean(transformed_data, trim = 0.1)
+    ggplot(car_sales, aes(x=transformed_data)) + geom_histogram(color="black", 
+                                                                fill="white",
+         bins = n_bins) + ggtitle("Histogram of Car Prices Data") + 
+  geom_vline(xintercept = td.mean_value, col = "red") +
+  annotate("text", x=td.mean_value + 0.0020, y=60,
+           label = substitute(paste(bar(x), " = ", m),
+                              list(m=td.mean_value)), col="red")+
+  geom_vline(xintercept = td.med_val, col = "blue") +
+  annotate("text", x=td.med_val + 0.0025, y=50,
+           label = substitute(paste(tilde(x), " = ", m),
+                              list(m=td.med_val)), col="blue")+
+  geom_vline(xintercept = td.trimmed_mean, col = "green") +
+  annotate("text", x=td.trimmed_mean + 0.003, y=40,
+           label = substitute(paste(bar(x)[10], " = ", m),
+           list(m=td.trimmed_mean)), col="green") + 
+           labs(x="Car Prices - BoxCox", y="Frequency") +
+           theme(plot.title = element_text(hjust = 0.5))
+# comment: 
+# After boxcox transformation it has become a unimodal normal distribution, 
+# and is almost symmetrical, and there are no potential outliers.  
+```         
+    d. As an alternative to the Box-Cox transformation, let's also use a log 
+    transformation. Apply the log transformation to the original `price` data 
+    (this transformation is hereon referred to as the log transformed data). 
+    Use the `summary()` function to summarize the results of this transformation. 
+```{r, echo=T, warning=FALSE}
+
+log_td = log(car_sales$price)
+print("Summary of Log Transformed Data")
+summary(log_td)
+```        
+    e. Create a histogram of the log transformed data using the number of bins 
+    suggested by Sturges' formula. On this histogram, report the mean, median, 
+    and 10\% trimmed mean using the same formatting options as in part 2a and 3c
+    above. Comment on the center shape and spread. 
+```{r, echo=T, warning=FALSE}
+
+
+log.mean_value = mean(log_td)
+log.med_val = median(log_td)
+log.trimmed_mean = mean(log_td, trim = 0.1)
+ggplot(car_sales, aes(x=log_td)) + geom_histogram(color="black", fill="white",
+       bins = n_bins) + ggtitle("Histogram of Car Prices Data") + 
+      geom_vline(xintercept = log.mean_value, col = "red") +
+  annotate("text", x=log.mean_value + 0.15, y=40,
+      label = substitute(paste(bar(x), " = ", m),
+      list(m=log.mean_value)), col="red")+
+  geom_vline(xintercept = log.med_val, col = "blue") +
+  annotate("text", x=log.med_val + 0.15, y=37,
+           label = substitute(paste(tilde(x), " = ", m),
+                              list(m=log.med_val)), col="blue")+
+  geom_vline(xintercept = log.trimmed_mean, col = "green") +
+  annotate("text", x=log.trimmed_mean + 0.15, y=34,
+           label = substitute(paste(bar(x)[10], " = ", m),
+                              list(m=log.trimmed_mean)), col="green") + 
+  labs(x="Car Prices - Log", y="Frequency") +
+  theme(plot.title = element_text(hjust = 0.5))
+# Comment
+# It is a unimodal normal distribution, and is almost symmetrical, and there are
+# no potential outliers, but it is slightly skewed to the right.
+```        
+    f. Create a qqplot for the original data, a qqplot for the Box-Cox 
+    transformed  data, and a qqplot of the log transformed data. 
+    Comment on the results. 
+```{r, echo=T, warning=FALSE}
+qqnorm(price, main = "Q-Q Plot of Original Given Data")
+qqline(price, col = "red", lwd = 2)
+
+qqnorm(transformed_data, main = "Q-Q Plot of BoxCox Transformed Data")
+qqline(transformed_data, col = "blue", lwd = 2)
+
+qqnorm(log_td, main = "Q-Q Plot of Log Transformed Data")
+qqline(log_td, col = "green", lwd = 2)
+
+# For original data: The data points vary largely from the theoretical line which
+# indicates skewness.
+# For BoxCox transformation: The data points almost fall on the theoretical line
+# which follows a normal distribution
+# For log transformation: The data points fall mostly fall on the line but deviates
+# a little when compared to the boxcox data plot.default
+# Therefore, boxcox transformed data is almost like a normal distribution.
+
+```         
+    g. Evaluate the empirical rule for the original data, the Box-Cox 
+    transformed data, and the log transformed data. In particular, make a table 
+    similar to that on slide 71 of the Chapter 2 notes. Comment on the results. 
+    Do either of the transformed data seem to be "better" to work with? Note, 
+    you can use code similar to the following to answer this question:
+```{r echo=TRUE}
+mat <- matrix(NA, nrow=9, ncol=5)
+
+### Set row names and column names
+rownames(mat) <- c("Original","","","Box-Cox","","","Log","","")
+colnames(mat) <- c("x","xbar-k*s", "xbar+k*s", "Theoretical %","Actual %")
+
+### Fill in known quantities
+mat[,1] <- c(1,2,3)
+mat[,4]<-c(68,95,99.7)
+# for xbar - k*s:
+mat[1,2] <- mean(price)-1*sd(price)
+mat[2,2] <- mean(price)-2*sd(price)
+mat[3,2] <- mean(price)-3*sd(price)
+
+mat[4,2] <- mean(transformed_data)-1*sd(transformed_data)
+mat[5,2] <- mean(transformed_data)-2*sd(transformed_data)
+mat[6,2] <- mean(transformed_data)-3*sd(transformed_data)
+
+mat[7,2] <- mean(log_td)-1*sd(log_td)
+mat[8,2] <- mean(log_td)-2*sd(log_td)
+mat[9,2] <- mean(log_td)-3*sd(log_td)
+
+# for xbar + k*s:
+mat[1,3] <- mean(price)+1*sd(price)
+mat[2,3] <- mean(price)+2*sd(price)
+mat[3,3] <- mean(price)+3*sd(price)
+
+mat[4,3] <- mean(transformed_data)+1*sd(transformed_data)
+mat[5,3] <- mean(transformed_data)+2*sd(transformed_data)
+mat[6,3] <- mean(transformed_data)+3*sd(transformed_data)
+
+mat[7,3] <- mean(log_td)+1*sd(log_td)
+mat[8,3] <- mean(log_td)+2*sd(log_td)
+mat[9,3] <- mean(log_td)+3*sd(log_td)
+
+# for Actual %:
+mat[1,5] <- sum(price >=mean(price)-1*sd(price) 
+                & price <= mean(price)+1*sd(price))/length(price)*100
+mat[2,5] <- sum(price >=mean(price)-2*sd(price) 
+                & price <= mean(price)+2*sd(price))/length(price)*100
+mat[3,5] <- sum(price >=mean(price)-3*sd(price) 
+                & price <= mean(price)+3*sd(price))/length(price)*100
+
+mat[4,5] <- sum(transformed_data >=mean(transformed_data)-1*sd(transformed_data) 
+                & transformed_data <= mean(transformed_data)+1*sd(transformed_data))/length(transformed_data)*100
+mat[5,5] <- sum(transformed_data >=mean(transformed_data)-2*sd(transformed_data) 
+                & transformed_data <= mean(transformed_data)+2*sd(transformed_data))/length(transformed_data)*100
+mat[6,5] <- sum(transformed_data >=mean(transformed_data)-3*sd(transformed_data) 
+                & transformed_data <= mean(transformed_data)+3*sd(transformed_data))/length(transformed_data)*100
+
+mat[7,5] <- sum(log_td >=mean(log_td)-1*sd(log_td) 
+                & log_td <= mean(log_td)+1*sd(log_td))/length(log_td)*100
+mat[8,5] <- sum(log_td >=mean(log_td)-2*sd(log_td) 
+                & log_td <= mean(log_td)+2*sd(log_td))/length(log_td)*100
+mat[9,5] <- sum(log_td >=mean(log_td)-3*sd(log_td) 
+                & log_td <= mean(log_td)+3*sd(log_td))/length(log_td)*100
+
+
+### Create a table
+library(knitr)
+kable(x=mat, digits=2,row.names=T, format="markdown")
+# comment:
+# In actual data, the theoretical value and the actual value varies a lot.
+# In boxcox transformed data, the actual value is almost closer to the theoretical 
+# value, and is much better compared to the log transformed data. So, boxcox 
+# transformation is much better for our data
+
+```
+    h. In your own words, provide some intuition about (1) why car price may 
+    not follow a normal distribution, and (2) why it may be useful to transform
+    the data into a form that more closely follows a normal distribution.
+```{r, echo=T, warning=FALSE}
+# (1) The reason for car prices not following normal distribution is that, not all 
+# people prefer expensive cars and if the prices are high, the number of people 
+# buying it will obviously be lesser and more number of people prefer buying 
+# mid-range and less expensive cars, and that is why, our data had its peak
+# towards the left of mean, and most our data is right skewed.
+
+# (2) If it follows normal distribution, all of the mean, median and mode would be
+# the same, and also with just the mean and standard deviation, we can get 
+# insights about the whole distribution.
+```         
+    
+Short Answers:
+
+  * About how long did this assignment take you? Did you feel it was too long, 
+  too short, or reasonable? 
+Answer: It took me quite some time, as I have never used R before, and I felt 
+it was longer and a little tougher for me.
+  
+  * Who, if anyone, did you work with on this assignment?
+Answer: I was not able to solve every question by myself, so I discussed with my
+friend Ajeesh Ajayan to get some insights on few of the questions and then 
+solved the problems.
+  
+  * What questions do you have relating to any of the material we have covered 
+  so far in class?    
+Answer: I am quite clear with the concepts taught so far.
